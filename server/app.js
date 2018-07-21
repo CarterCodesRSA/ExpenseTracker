@@ -6,7 +6,6 @@ const app = express();
 
 const sheets = require('./routes/sheets');
 
-const singleton = require('./api/singleton').getInstance();
 
 // Set Public Folder
 app.use(express.static('public'));

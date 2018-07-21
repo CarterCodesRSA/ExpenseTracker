@@ -3,13 +3,15 @@ const readline = require('readline');
 const { google } = require('googleapis');
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
-const TOKEN_PATH = 'credentials.json';
+const TOKEN_PATH = 'token.js';
 const PATH_TO_CLIENT_SECRET = './client_secret.json';
 
 class AuthClient {
   constructor() {
     this.auth = null;
     this.sheets = null;
+
+    this.authClient();
   }
 
   authorize(credentials, callback) {
@@ -62,6 +64,7 @@ class AuthClient {
         this.authorize(JSON.parse(content), auth => {
           this.auth = Object.assign({}, auth);
           this.sheets = google.sheets({ version: 'v4', auth });
+          console.log("We're authed!");
           resolve();
         });
       });
@@ -117,4 +120,4 @@ class AuthClient {
   }
 }
 
-module.exports = { AuthClient };
+module.exports = AuthClient;
