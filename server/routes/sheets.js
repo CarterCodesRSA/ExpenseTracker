@@ -1,17 +1,21 @@
-const express = require('express')
+const express = require('express');
 
-const router = express.Router()
+const router = express.Router();
 
 router.get('/', (req, res) => {
   // res.json({ success: true })
   console.log('res: ', res);
-  res.json({ success: true })
-})
+  res.json({ success: true });
+});
 
 router.post('/', (req, res) => {
-  // return res.json({ message: 'Thank you for voting' })
-  console.log('res: ', res);
-  return res.json({ message: 'Thank you for voting' })
-})
+  const { date, data } = req.body;
+  
 
-module.exports = router
+  res.json({
+    success: 1,
+    message: `Thank you for your data, submitted for date ${date}`
+  });
+});
+
+module.exports = router;
