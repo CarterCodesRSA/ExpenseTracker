@@ -1,7 +1,46 @@
+const getDate = () => {
+  var today = new Date();
+  var dd = today.getDate();
+  var mm = today.getMonth() + 1;
+  var yyyy = today.getFullYear();
+
+  if (dd < 10) {
+    dd = '0' + dd;
+  }
+  if (mm < 10) {
+    mm = '0' + mm;
+  }
+  today = dd + '/' + mm + '/' + yyyy;
+
+  return today;
+};
+
 const submitExpense = e => {
   e.preventDefault();
-  const choice = document.querySelectorAll('input[name=expenses]');
+  const expenseNodeList = document.querySelectorAll('input[name=expense]');
+  console.log('choice: ', expenseNodeList);
+
+  const expenseArray = Array.prototype.slice.call(expenseNodeList);
+  const requestArray = [];
+
+  expenseArray.map(expense => {
+    if (expense.value) {
+      requestArray.push({
+        name: expense.getAttribute('data-expense-name'),
+        amount: expense.value,
+        type: expense.getAttribute('data-expense-type')
+      });
+      //console.log(expense.value);
+      //console.log(expense.getAttribute('data-expense-type'));
+    }
+  });
+  const completeRequest = {
+      date: getDate(), 
+      expenses:requestArray
+  }
+  console.log('completeRequest: ', completeRequest);
 };
+
 const addExpenseType = e => {
   e.preventDefault();
   const choice = document.querySelector('input[name=addExpenseType]').value;
@@ -28,7 +67,7 @@ const addExpenseType = e => {
       $('#expenses input[type=submit]').before(`
         <p>
         <span style="font-weight:bold">${choice}</span>
-        <input type="text" name="expense">
+        <input type="text" name="expense" data-expense-type="other" data-expense-name=${choice}>
         </p>`);
     }
   }
