@@ -13,12 +13,6 @@ const GoogleSheet = new AuthClient();
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  // res.json({ success: true })
-  // console.log('res: ', res);
-
-  const sheet = await GoogleSheet.createSheet();
-  // const sheet = false;
-
   res.json({ success: true, payload: sheet });
 });
 

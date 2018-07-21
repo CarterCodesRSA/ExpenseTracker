@@ -5,6 +5,7 @@ const { google } = require('googleapis');
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const TOKEN_PATH = 'token.js';
 const PATH_TO_CLIENT_SECRET = './client_secret.json';
+const SHEET_ID = '1HeeWipNHovcnUYR4BTFnWdVLOZodoxT1I3ZVMky5F8k';
 
 class AuthClient {
   constructor() {
@@ -15,7 +16,7 @@ class AuthClient {
   }
 
   authorize(credentials, callback) {
-    const { client_secret, client_id, redirect_uris } = credentials.installed;
+    const { client_secret, client_id, redirect_uris } = credentials.web;
     const oAuth2Client = new google.auth.OAuth2(
       client_id,
       client_secret,
@@ -82,7 +83,7 @@ class AuthClient {
     };
 
     return new Promise((resolve, reject) => {
-      this.sheets.spreadsheets.create(request, (err, { data }) => {
+      this.sheets.spreadsheets.create(request, (err, { data}) => {
         if (err) reject(err);
         resolve(data);
       });
