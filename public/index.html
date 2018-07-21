@@ -12,19 +12,20 @@
 
 <body>
   <div class='container'>
-    <h1>Expense Type</h1>
+    <h1>Expense Tracker</h1>
+    <h2>List of current expense types</h2>
     <form id='expenses'>
       <p>
         <span style="font-weight:bold">Food</span>
-        <input type="text" name="expense">
+        <input type="text" name="expense" data-expense-type="standard" data-expense-name='Food'>
       </p>
       <p>
         <span style="font-weight:bold">Petrol</span>
-        <input type="text" name="expense">
+        <input type="text" name="expense" data-expense-type="standard" data-expense-name='Petrol'>
       </p>
       <p>
         <span style="font-weight:bold">Electricity</span>
-        <input type="text" name="expense">
+        <input type="text" name="expense" data-expense-type="standard" data-expense-name='Electricity'>
       </p>
       <input type="submit" value='Log Expense' class='btn'>
     </form>
