@@ -2,9 +2,10 @@
   "name": "expensetracker",
   "version": "1.0.0",
   "description": "Tracking Expenses",
-  "main": "app.js",
+  "main": "server/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
   "repository": {
     "type": "git",
@@ -12,5 +13,14 @@
   },
   "author": "Kyle and Paul",
   "license": "ISC",
-  "homepage": "https://bitbucket.org/paullyfire/expensetracker#readme"
+  "homepage": "https://bitbucket.org/paullyfire/expensetracker#readme",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "cors": "^2.8.4",
+    "express": "^4.16.3",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.3"
+  }
 }
