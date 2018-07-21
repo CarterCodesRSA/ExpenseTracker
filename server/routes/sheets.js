@@ -17,12 +17,12 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { date, expenses } = req.body;
+  const request = GoogleSheet.writeData(req.body);
 
   res.json({
     success: 1,
-    message: `Thank you for your data, submitted for date ${date}`,
-    receivedData: expenses
+    message: `Thank you for your data, submitted for date ${req.body.date}`,
+    receivedData: req.body.expenses
   });
 });
 

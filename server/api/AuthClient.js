@@ -83,35 +83,76 @@ class AuthClient {
     };
 
     return new Promise((resolve, reject) => {
-      this.sheets.spreadsheets.create(request, (err, { data}) => {
+      this.sheets.spreadsheets.create(request, (err, { data }) => {
         if (err) reject(err);
         resolve(data);
       });
     });
   }
 
-  getAllData({ spreadsheetId, range }) {
+  writeData(importData) {
+    console.log('importData: ', importData);
+
+    const { date, expenses } = importData;
+
+    const resultArray = [];
+
+    const expenseLength = Object.keys(expenses).length;
+    console.log('expenseLength: ', expenseLength);
+
+    expenses.map(expenseItem => {
+      const { name, amount, type } = expenseItem;
+      resultArray.push([`${date}`, `${name}`, `${amount}`, `${type}`]);
+    });
+
+    const sheetData = this.getAllData('A:V');
+    sheetData.then(sheet => {
+      const startRow = sheet.values.length + 1;
+
+      const data = [];
+      data.push({
+        range: `A${startRow}:V${startRow + expenseLength}`,
+        values: resultArray
+      });
+      console.log('data: ', data);
+      // Additional ranges to update.
+
+      const body = {
+        data,
+        valueInputOption: 'RAW'
+      };
+
+      this.sheets.spreadsheets.values
+        .batchUpdate({
+          spreadsheetId: SHEET_ID,
+          resource: body
+        })
+        .then(response => {
+          console.log('Rows inserted! :)');
+        });
+    });
+  }
+
+  getAllData(range) {
     return new Promise((resolve, reject) => {
       this.sheets.spreadsheets.values.get(
-        { spreadsheetId, range },
+        { spreadsheetId: SHEET_ID, range },
         (err, { data }) => {
           if (err) reject(`Something went wrong: ${err}`);
-          resolve({ data, spreadsheetId, range });
+          resolve(data);
         }
       );
     });
   }
 
-  printAllData({ data, spreadsheetId, range }) {
+  printAllData({ data, range }) {
     const rows = data.values;
 
-    if (spreadsheetId) {
-      console.log(
-        `This sheet is ranged: ${range}
-        https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit
+    console.log(
+      `This sheet is ranged: ${range}
+        https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit
         `
-      );
-    }
+    );
 
     if (rows.length) {
       rows.map(row => console.log(row.join(', ')));
