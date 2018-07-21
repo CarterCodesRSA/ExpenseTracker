@@ -17,11 +17,12 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { date, data } = req.body;
+  const { date, expenses } = req.body;
 
   res.json({
     success: 1,
-    message: `Thank you for your data, submitted for date ${date}`
+    message: `Thank you for your data, submitted for date ${date}`,
+    receivedData: expenses
   });
 });
 
