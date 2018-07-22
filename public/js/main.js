@@ -38,7 +38,7 @@ const submitExpense = e => {
     date: getDate(),
     expenses: requestArray
   };
-  fetch('http://localhost:3000/sheets', {
+  fetch('/sheets', {
     method: 'post',
     body: JSON.stringify(completeRequest),
     headers: new Headers({
