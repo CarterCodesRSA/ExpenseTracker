@@ -35,10 +35,19 @@ const submitExpense = e => {
     }
   });
   const completeRequest = {
-      date: getDate(), 
-      expenses:requestArray
-  }
-  console.log('completeRequest: ', completeRequest);
+    date: getDate(),
+    expenses: requestArray
+  };
+  fetch('http://localhost:3000/sheets', {
+    method: 'post',
+    body: JSON.stringify(completeRequest),
+    headers: new Headers({
+      'Content-Type': 'application/json'
+    })
+  })
+    .then(res => res.json())
+    .then(data => console.log(data))
+    .catch(err => console.log(err));
 };
 
 const addExpenseType = e => {
