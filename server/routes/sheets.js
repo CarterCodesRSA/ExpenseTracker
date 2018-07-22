@@ -32,22 +32,10 @@ router.get('/getSheets', (req, res) => {
     });
 });
 
-router.get('/createSheet', (req, res) => {
-  console.log(`GET /Sheets/createSheet - ${req.connection.remoteAddress}`);
-  GoogleSheet.createSheet('December 2018')
-    .then(data => {
-      console.log(`POST /Sheets - ${req.connection.remoteAddress} - Success:\n`, data);
-      res.json({ success: 1, payload: data });
-    })
-    .catch(err => {
-      console.log(`GET /Sheets/createSheet - ${req.connection.remoteAddress} - Error:\n`, err);
-      res.json({ success: 0, error: err });
-    });
-});
-
 router.post('/', (req, res) => {
   console.log(`POST /Sheets - ${req.connection.remoteAddress}`);
-  GoogleSheet.writeDataRequest(req.body)
+  // GoogleSheet.writeDataRequest(req.body)
+  GoogleSheet.writeData(req.body)
     .then(payload => {
       console.log(`POST /Sheets - ${req.connection.remoteAddress} - Success:\n`, payload);
       res.json({

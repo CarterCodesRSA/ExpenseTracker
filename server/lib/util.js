@@ -1,3 +1,18 @@
+const months = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December'
+];
+
 const validateInsertionPayload = ({ date, expenses }) => {
   if (!date) {
     return { isValid: false, error: "Please include a date, or ensure it's spelled correctly." };
@@ -16,4 +31,21 @@ const validateInsertionPayload = ({ date, expenses }) => {
     : { isValid: true };
 };
 
-module.exports = { validateInsertionPayload };
+const getSheetNameFromDate = date => {
+  const returnDate = date.split('/');
+  return `${months[returnDate[1] - 1]} ${returnDate[2]}`;
+};
+
+const formatRequestExpenses = ({ date, expenses }) => {
+  const resultArray = [];
+
+  expenses.map(expenseItem => {
+    const { name, amount, type } = expenseItem;
+    resultArray.push([`${date}`, `${name}`, `${amount}`, `${type}`]);
+    return null;
+  });
+
+  return resultArray;
+};
+
+module.exports = { validateInsertionPayload, getSheetNameFromDate, formatRequestExpenses };

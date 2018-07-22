@@ -1,12 +1,14 @@
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
-const { validateInsertionPayload } = require('../lib/util');
+const { validateInsertionPayload, getSheetNameFromDate, formatRequestExpenses } = require('../lib/util');
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const TOKEN_PATH = 'token.js';
 const PATH_TO_CLIENT_SECRET = './client_secret.json';
-const SHEET_ID = '1HeeWipNHovcnUYR4BTFnWdVLOZodoxT1I3ZVMky5F8k';
+const TEST_SHEET_ID = '1Ic99dYelSgX1h_AJwpOFAHaso6O1-RuCo8d8TfoNcAw';
+const PRODUCTION_SHEET_ID = '1HeeWipNHovcnUYR4BTFnWdVLOZodoxT1I3ZVMky5F8k';
+const SHEET_ID = process.env.NODE_ENV === 'production' ? PRODUCTION_SHEET_ID : TEST_SHEET_ID;
 
 class AuthClient {
   constructor() {
@@ -71,48 +73,71 @@ class AuthClient {
     });
   }
 
-  writeDataRequest(importData) {
+  writeData(importData) {
     return new Promise(async (resolve, reject) => {
       const isPayloadValid = validateInsertionPayload(importData);
 
       if (isPayloadValid.isValid) {
-        const { date, expenses } = importData;
-        const expenseLength = Object.keys(expenses).length;
-        const resultArray = [];
+        const { date } = importData;
 
-        expenses.map(expenseItem => {
-          const { name, amount, type } = expenseItem;
-          resultArray.push([`${date}`, `${name}`, `${amount}`, `${type}`]);
+        const sheetName = getSheetNameFromDate(date);
+        const sheetExists = this.worksheets.some(item => {
+          return item.title === sheetName;
         });
 
-        const existingSheetData = await this.getDataByRange('A:A');
-        const startRow = existingSheetData.values.length + 1;
+        const appendRequestPayload = Object.assign({}, { sheetName }, importData);
 
+        try {
+          if (!sheetExists) {
+            await this.createSheet(sheetName);
+
+            const appendRequest = await this.appendDataToSheet(appendRequestPayload);
+            const responsePayload = Object.assign({}, appendRequest, { sheetNameCreated: sheetName });
+            resolve(responsePayload);
+          } else {
+            const appendRequest = await this.appendDataToSheet(appendRequestPayload);
+            resolve(appendRequest);
+          }
+        } catch (err) {
+          reject('Something went wrong trying to append the data.');
+        }
+      } else {
+        reject(isPayloadValid.error);
+      }
+    });
+  }
+
+  appendDataToSheet({ sheetName, date, expenses }) {
+    return new Promise(async (resolve, reject) => {
+      const existingSheetData = await this.getDataByRange(`${sheetName}!A:A`);
+      const startRow = existingSheetData.values.length + 1;
+
+      const resultArray = formatRequestExpenses({ date, expenses });
+      const expensesLength = resultArray.length;
+
+      const targetRange = `${sheetName}!A${startRow}:V${startRow + expensesLength}`;
+
+      try {
         const request = await this.sheets.spreadsheets.values.batchUpdate({
           spreadsheetId: SHEET_ID,
           resource: {
             data: {
-              range: `A${startRow}:V${startRow + expenseLength}`,
+              range: targetRange,
               values: resultArray
             },
             valueInputOption: 'RAW'
           }
         });
 
-        if (request.status === 200) {
-          const { spreadsheetId } = request.data;
+        const { spreadsheetId, responses } = request.data;
+        const responsePayload = Object.assign({}, responses[0], {
+          url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+        });
 
-          const payload = Object.assign({}, request.data.responses[0], {
-            url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
-          });
-
-          resolve(payload);
-        } else {
-          reject('Request Failed');
-        }
+        resolve(responsePayload);
+      } catch (err) {
+        reject('There was an error writing the data to the sheet.');
       }
-
-      reject(isPayloadValid.error);
     });
   }
 
@@ -147,6 +172,7 @@ class AuthClient {
           }
         });
 
+        await this.getSheets();
         resolve();
       } catch (err) {
         reject(err.response.data);
@@ -157,13 +183,13 @@ class AuthClient {
   getSheets() {
     return new Promise((resolve, reject) => {
       this.sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }, (err, data) => {
-        if (err) reject(`Error ltrying to get spreadsheets: ${err}`);
+        if (err) reject(`Error trying to get spreadsheets: ${err}`);
 
         const {
           data: { sheets }
         } = data;
 
-        const payload = sheets.map(sheet => {
+        const responsePayload = sheets.map(sheet => {
           const {
             properties: { title, index }
           } = sheet;
@@ -171,10 +197,8 @@ class AuthClient {
           return { title, index };
         });
 
-        this.worksheets = payload;
-        console.log('this.worksheets: ', this.worksheets);
-
-        resolve(payload);
+        this.worksheets = responsePayload;
+        resolve(responsePayload);
       });
     });
   }
@@ -182,7 +206,7 @@ class AuthClient {
   getDataByRange(range) {
     return new Promise((resolve, reject) => {
       this.sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range }, (err, { data }) => {
-        if (err) reject(`Something went wrong: ${err}`);
+        if (err) reject(`Something went trying to get data by range: ${err}`);
         resolve(data);
       });
     });
