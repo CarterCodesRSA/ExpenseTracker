@@ -1,6 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
+const { validateInsertionPayload } = require('../lib/util');
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const TOKEN_PATH = 'token.js';
@@ -11,8 +12,11 @@ class AuthClient {
   constructor() {
     this.auth = null;
     this.sheets = null;
+    this.worksheets = [];
 
-    this.authClient();
+    this.authClient().then(() => {
+      this.getSheets();
+    });
   }
 
   authorize(credentials, callback) {
@@ -67,27 +71,9 @@ class AuthClient {
     });
   }
 
-  validateInsertionPayload({ date, expenses }) {
-    if (!date) {
-      return { isValid: false, error: "Please include a date, or ensure it's spelled correctly." };
-    }
-    if (!expenses) {
-      return { isValid: false, error: "Please include an expenses payload, or ensure it's spelled correctly." };
-    }
-
-    const isExpenseKeysValid = expenses.every(expenseItem => {
-      const { name, amount, type } = expenseItem;
-      return name || amount || type ? true : false;
-    });
-
-    return !isExpenseKeysValid
-      ? { isValid: false, error: 'One of your payload object keys are incorrect. Looking for name, amount, type' }
-      : { isValid: true };
-  }
-
-  writeData(importData) {
+  writeDataRequest(importData) {
     return new Promise(async (resolve, reject) => {
-      const isPayloadValid = this.validateInsertionPayload(importData);
+      const isPayloadValid = validateInsertionPayload(importData);
 
       if (isPayloadValid.isValid) {
         const { date, expenses } = importData;
@@ -130,13 +116,65 @@ class AuthClient {
     });
   }
 
-  getSheet() {
+  createSheet(sheetName) {
+    return new Promise(async (resolve, reject) => {
+      const { spreadsheets } = this.sheets;
+
+      try {
+        const createSheetRequest = await spreadsheets.batchUpdate({
+          spreadsheetId: SHEET_ID,
+          resource: {
+            requests: [
+              {
+                addSheet: {
+                  properties: {
+                    title: sheetName
+                  }
+                }
+              }
+            ]
+          }
+        });
+
+        const addHeaderRequest = await spreadsheets.values.batchUpdate({
+          spreadsheetId: SHEET_ID,
+          resource: {
+            data: {
+              range: `${sheetName}!A1:V5`,
+              values: [['Date', 'Name', 'Amount', 'Type']]
+            },
+            valueInputOption: 'RAW'
+          }
+        });
+
+        resolve();
+      } catch (err) {
+        reject(err.response.data);
+      }
+    });
+  }
+
+  getSheets() {
     return new Promise((resolve, reject) => {
       this.sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }, (err, data) => {
-        const { data: { sheets } } = data;
+        if (err) reject(`Error ltrying to get spreadsheets: ${err}`);
 
-        console.log('err: ', err);
-        resolve(sheets);
+        const {
+          data: { sheets }
+        } = data;
+
+        const payload = sheets.map(sheet => {
+          const {
+            properties: { title, index }
+          } = sheet;
+
+          return { title, index };
+        });
+
+        this.worksheets = payload;
+        console.log('this.worksheets: ', this.worksheets);
+
+        resolve(payload);
       });
     });
   }
