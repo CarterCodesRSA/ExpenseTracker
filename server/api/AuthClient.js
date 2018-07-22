@@ -19,7 +19,6 @@ class AuthClient {
     const { client_secret, client_id, redirect_uris } = credentials.web;
     const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
-    // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, (err, token) => {
       if (err) return this.getNewToken(oAuth2Client, callback);
 
@@ -68,73 +67,71 @@ class AuthClient {
     });
   }
 
-  // createSheet() {
-  //   const request = {
-  //     resource: {
-  //       properties: {
-  //         title: 'New Sheet!',
-  //         locale: 'en'
-  //       }
-  //     }
-  //   };
-
-  //   return new Promise((resolve, reject) => {
-  //     this.sheets.spreadsheets.create(request, (err, { data }) => {
-  //       if (err) reject(err);
-  //       resolve(data);
-  //     });
-  //   });
-  // }
-
   writeData(importData) {
     return new Promise(async (resolve, reject) => {
       const { date, expenses } = importData;
 
-      !date && reject("Please include a date, or ensure it's spelled correctly.");
-      !expenses && reject("Please include an expenses payload, or ensure it's spelled correctly.");
-
-      console.log('WHAT');
+      if (!date) {
+        reject("Please include a date, or ensure it's spelled correctly.");
+        return;
+      }
+      if (!expenses) {
+        reject("Please include an expenses payload, or ensure it's spelled correctly.");
+        return;
+      }
 
       const resultArray = [];
       const expenseLength = Object.keys(expenses).length;
 
-      expenses.map(expenseItem => {
+      const isExpenseKeysValid = expenses.every(expenseItem => {
         const { name, amount, type } = expenseItem;
 
         if (!name || !amount || !type) {
           reject('One of your payload object keys are incorrect. Looking for name, amount, type');
+          return false;
         }
-
-        resultArray.push([`${date}`, `${name}`, `${amount}`, `${type}`]);
+        return true;
       });
 
-      const existingSheetData = await this.getDataByRange('A:V');
-      const startRow = existingSheetData.values.length + 1;
+      if (isExpenseKeysValid) {
+        expenses.map(expenseItem => {
+          const { name, amount, type } = expenseItem;
 
-      const request = await this.sheets.spreadsheets.values.batchUpdate({
-        spreadsheetId: SHEET_ID,
-        resource: {
-          data: {
-            range: `A${startRow}:V${startRow + expenseLength}`,
-            values: resultArray
-          },
-          valueInputOption: 'RAW'
-        }
-      });
-      // console.log('request: ', request);
-      console.log('request.status: ', request.status);
+          if (!name || !amount || !type) {
+            reject('One of your payload object keys are incorrect. Looking for name, amount, type');
+          }
 
-      if (request.status === 200) {
-        const { spreadsheetId } = request.data;
-
-        const payload = Object.assign({}, request.data.responses[0], {
-          url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+          resultArray.push([`${date}`, `${name}`, `${amount}`, `${type}`]);
         });
 
-        resolve(payload);
-      } else {
-        reject(reject);
+        const existingSheetData = await this.getDataByRange('A:V');
+        const startRow = existingSheetData.values.length + 1;
+
+        const request = await this.sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: SHEET_ID,
+          resource: {
+            data: {
+              range: `A${startRow}:V${startRow + expenseLength}`,
+              values: resultArray
+            },
+            valueInputOption: 'RAW'
+          }
+        });
+
+        if (request.status === 200) {
+          const { spreadsheetId } = request.data;
+
+          const payload = Object.assign({}, request.data.responses[0], {
+            url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+          });
+
+          resolve(payload);
+        } else {
+          reject(reject);
+        }
       }
+
+      return;
     });
   }
 
@@ -145,22 +142,6 @@ class AuthClient {
         resolve(data);
       });
     });
-  }
-
-  printAllData({ data, range }) {
-    const rows = data.values;
-
-    console.log(
-      `This sheet is ranged: ${range}
-        https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit
-        `
-    );
-
-    if (rows.length) {
-      rows.map(row => console.log(row.join(', ')));
-    } else {
-      console.log('No data found.');
-    }
   }
 }
 
