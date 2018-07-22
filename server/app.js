@@ -18,8 +18,8 @@ app.use(cors());
 
 app.use('/sheets', sheets);
 
-const portNumber = 80;
+const portNumber = process.env.NODE_ENV === 'production' ? 80 : 3000;
+
 
 // Start Server
 app.listen(portNumber, () => console.log(`Server started on ${portNumber}`));
-

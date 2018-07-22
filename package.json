@@ -2,9 +2,9 @@
   "name": "expensetracker",
   "version": "1.0.0",
   "description": "Tracking Expenses",
-  "main": "server/app.js",
+  "main": "NODE_ENV=production node server/app.js",
   "scripts": {
-    "start": "node server/app.js",
+    "start": "NODE_ENV=production node server/app.js",
     "dev": "nodemon server/app.js"
   },
   "repository": {
