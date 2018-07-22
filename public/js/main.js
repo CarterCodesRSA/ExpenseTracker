@@ -1,3 +1,5 @@
+console.log("test string");
+
 const getDate = () => {
   var today = new Date();
   var dd = today.getDate();
