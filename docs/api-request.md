@@ -1,6 +1,6 @@
 Api Documentation
 
-POST /sheets
+POST /Sheets
 
 {  
   "date":"2018-07-05",
@@ -32,3 +32,7 @@ POST /sheets
      }
   ]
 }
+
+GET /Sheets
+
+returns all spreadsheet data
