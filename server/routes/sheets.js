@@ -2,42 +2,37 @@ const express = require('express');
 
 const AuthClient = require('../api/AuthClient');
 
-// const GoogleSheet = require('../api/singleton').getInstance();
-// GoogleSheet.then(data => {
-//   const { auth, sheets, ...leftOver } = data;
-//   console.log(leftOver);
-// });
-
 const GoogleSheet = new AuthClient();
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
-  res.json({ success: true, payload: sheet });
+  GoogleSheet.getDataByRange('A:V')
+    .then(data => {
+      res.json({ success: 1, payload: data });
+    })
+    .catch(err => {
+      res.json({ success: 0, error: err });
+    });
 });
 
 router.post('/', (req, res) => {
-  const request = GoogleSheet.writeData(req.body);
+  GoogleSheet.writeData(req.body)
+    .then(payload => {
+      console.log(payload);
 
-  res.json({
-    success: 1,
-    message: `Thank you for your data, submitted for date ${req.body.date}`,
-    receivedData: req.body.expenses
-  });
+      res.json({
+        success: 1,
+        payload
+      });
+    })
+    .catch(err => {
+      console.log('err: ', err);
+      res.json({
+        success: 0,
+        payload: `${err}`
+      });
+    });
 });
 
 module.exports = router;
-
-/*
-
-const getPrintAllData = async id => {
-  const request = { spreadsheetId: id, range: 'A:V' };
-  const sampleData = await client.getAllData(request);
-  client.printAllData(sampleData);
-};
-
-const createSheet = async () => {
-  const create = await client.createSheet();
-}
-
-*/

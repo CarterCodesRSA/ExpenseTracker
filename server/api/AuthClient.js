@@ -17,11 +17,7 @@ class AuthClient {
 
   authorize(credentials, callback) {
     const { client_secret, client_id, redirect_uris } = credentials.web;
-    const oAuth2Client = new google.auth.OAuth2(
-      client_id,
-      client_secret,
-      redirect_uris[0]
-    );
+    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
 
     // Check if we have previously stored a token.
     fs.readFile(TOKEN_PATH, (err, token) => {
@@ -72,76 +68,82 @@ class AuthClient {
     });
   }
 
-  createSheet() {
-    const request = {
-      resource: {
-        properties: {
-          title: 'New Sheet!',
-          locale: 'en'
-        }
-      }
-    };
+  // createSheet() {
+  //   const request = {
+  //     resource: {
+  //       properties: {
+  //         title: 'New Sheet!',
+  //         locale: 'en'
+  //       }
+  //     }
+  //   };
 
-    return new Promise((resolve, reject) => {
-      this.sheets.spreadsheets.create(request, (err, { data }) => {
-        if (err) reject(err);
-        resolve(data);
-      });
-    });
-  }
+  //   return new Promise((resolve, reject) => {
+  //     this.sheets.spreadsheets.create(request, (err, { data }) => {
+  //       if (err) reject(err);
+  //       resolve(data);
+  //     });
+  //   });
+  // }
 
   writeData(importData) {
-    console.log('importData: ', importData);
+    return new Promise(async (resolve, reject) => {
+      const { date, expenses } = importData;
 
-    const { date, expenses } = importData;
+      !date && reject("Please include a date, or ensure it's spelled correctly.");
+      !expenses && reject("Please include an expenses payload, or ensure it's spelled correctly.");
 
-    const resultArray = [];
+      console.log('WHAT');
 
-    const expenseLength = Object.keys(expenses).length;
-    console.log('expenseLength: ', expenseLength);
+      const resultArray = [];
+      const expenseLength = Object.keys(expenses).length;
 
-    expenses.map(expenseItem => {
-      const { name, amount, type } = expenseItem;
-      resultArray.push([`${date}`, `${name}`, `${amount}`, `${type}`]);
-    });
+      expenses.map(expenseItem => {
+        const { name, amount, type } = expenseItem;
 
-    const sheetData = this.getAllData('A:V');
-    sheetData.then(sheet => {
-      const startRow = sheet.values.length + 1;
+        if (!name || !amount || !type) {
+          reject('One of your payload object keys are incorrect. Looking for name, amount, type');
+        }
 
-      const data = [];
-      data.push({
-        range: `A${startRow}:V${startRow + expenseLength}`,
-        values: resultArray
+        resultArray.push([`${date}`, `${name}`, `${amount}`, `${type}`]);
       });
-      console.log('data: ', data);
-      // Additional ranges to update.
 
-      const body = {
-        data,
-        valueInputOption: 'RAW'
-      };
+      const existingSheetData = await this.getDataByRange('A:V');
+      const startRow = existingSheetData.values.length + 1;
 
-      this.sheets.spreadsheets.values
-        .batchUpdate({
-          spreadsheetId: SHEET_ID,
-          resource: body
-        })
-        .then(response => {
-          console.log('Rows inserted! :)');
+      const request = await this.sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        resource: {
+          data: {
+            range: `A${startRow}:V${startRow + expenseLength}`,
+            values: resultArray
+          },
+          valueInputOption: 'RAW'
+        }
+      });
+      // console.log('request: ', request);
+      console.log('request.status: ', request.status);
+
+      if (request.status === 200) {
+        const { spreadsheetId } = request.data;
+
+        const payload = Object.assign({}, request.data.responses[0], {
+          url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
         });
+
+        resolve(payload);
+      } else {
+        reject(reject);
+      }
     });
   }
 
-  getAllData(range) {
+  getDataByRange(range) {
     return new Promise((resolve, reject) => {
-      this.sheets.spreadsheets.values.get(
-        { spreadsheetId: SHEET_ID, range },
-        (err, { data }) => {
-          if (err) reject(`Something went wrong: ${err}`);
-          resolve(data);
-        }
-      );
+      this.sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range }, (err, { data }) => {
+        if (err) reject(`Something went wrong: ${err}`);
+        resolve(data);
+      });
     });
   }
 
