@@ -67,44 +67,39 @@ class AuthClient {
     });
   }
 
+  validateInsertionPayload({ date, expenses }) {
+    if (!date) {
+      return { isValid: false, error: "Please include a date, or ensure it's spelled correctly." };
+    }
+    if (!expenses) {
+      return { isValid: false, error: "Please include an expenses payload, or ensure it's spelled correctly." };
+    }
+
+    const isExpenseKeysValid = expenses.every(expenseItem => {
+      const { name, amount, type } = expenseItem;
+      return name || amount || type ? true : false;
+    });
+
+    return !isExpenseKeysValid
+      ? { isValid: false, error: 'One of your payload object keys are incorrect. Looking for name, amount, type' }
+      : { isValid: true };
+  }
+
   writeData(importData) {
     return new Promise(async (resolve, reject) => {
-      const { date, expenses } = importData;
+      const isPayloadValid = this.validateInsertionPayload(importData);
 
-      if (!date) {
-        reject("Please include a date, or ensure it's spelled correctly.");
-        return;
-      }
-      if (!expenses) {
-        reject("Please include an expenses payload, or ensure it's spelled correctly.");
-        return;
-      }
+      if (isPayloadValid.isValid) {
+        const { date, expenses } = importData;
+        const expenseLength = Object.keys(expenses).length;
+        const resultArray = [];
 
-      const resultArray = [];
-      const expenseLength = Object.keys(expenses).length;
-
-      const isExpenseKeysValid = expenses.every(expenseItem => {
-        const { name, amount, type } = expenseItem;
-
-        if (!name || !amount || !type) {
-          reject('One of your payload object keys are incorrect. Looking for name, amount, type');
-          return false;
-        }
-        return true;
-      });
-
-      if (isExpenseKeysValid) {
         expenses.map(expenseItem => {
           const { name, amount, type } = expenseItem;
-
-          if (!name || !amount || !type) {
-            reject('One of your payload object keys are incorrect. Looking for name, amount, type');
-          }
-
           resultArray.push([`${date}`, `${name}`, `${amount}`, `${type}`]);
         });
 
-        const existingSheetData = await this.getDataByRange('A:V');
+        const existingSheetData = await this.getDataByRange('A:A');
         const startRow = existingSheetData.values.length + 1;
 
         const request = await this.sheets.spreadsheets.values.batchUpdate({
@@ -127,11 +122,22 @@ class AuthClient {
 
           resolve(payload);
         } else {
-          reject(reject);
+          reject('Request Failed');
         }
       }
 
-      return;
+      reject(isPayloadValid.error);
+    });
+  }
+
+  getSheet() {
+    return new Promise((resolve, reject) => {
+      this.sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }, (err, data) => {
+        const { data: { sheets } } = data;
+
+        console.log('err: ', err);
+        resolve(sheets);
+      });
     });
   }
 

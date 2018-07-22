@@ -19,6 +19,19 @@ router.get('/', (req, res) => {
     });
 });
 
+router.get('/main', (req, res) => {
+  console.log(`GET /Sheets/main - ${req.connection.remoteAddress}`);
+  GoogleSheet.getSheet()
+    .then(data => {
+      console.log(`GET /Sheets - ${req.connection.remoteAddress} - Success`);
+      res.json({ success: 1, payload: data });
+    })
+    .catch(err => {
+      console.log(`GET /Sheets - ${req.connection.remoteAddress} - Error:\n`, err);
+      res.json({ success: 0, error: err });
+    });
+});
+
 router.post('/', (req, res) => {
   console.log(`POST /Sheets - ${req.connection.remoteAddress}`);
   GoogleSheet.writeData(req.body)
